@@ -1,0 +1,20 @@
+exam.mydomain.com {
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle /admin/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle_path /static/* {
+		root * /opt/codequest/backend/staticfiles
+		file_server
+	}
+
+	handle {
+		root * /var/www/html/exam
+		try_files {path} /index.html
+		file_server
+	}
+}

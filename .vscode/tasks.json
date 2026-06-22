@@ -1,0 +1,26 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"command": "bun dev:back",
+			"problemMatcher": [],
+			"label": "dev:back",
+		},
+		{
+			"type": "shell",
+			"command": "bun dev:front",
+			"problemMatcher": [],
+			"label": "dev:front",
+		},
+		{
+			"label": "dev:all",
+			"dependsOn": [
+				"dev:front",
+				"dev:back"
+			],
+			"dependsOrder": "parallel",
+			"problemMatcher": []
+		}
+	]
+}

@@ -1,0 +1,27 @@
+services:
+  frontend-build:
+    image: oven/bun:1
+    working_dir: /app
+    command: sh -c "bun install --frozen-lockfile && bun run build && mkdir -p /dist && rm -rf /dist/* && cp -a dist/. /dist/"
+    volumes:
+      - ./frontend:/app
+      - ${FRONTEND_DIST_DIR:-/var/www/html/exam}:/dist
+    profiles:
+      - build
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DJANGO_ALLOWED_HOSTS: ${DOMAIN}
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://${DOMAIN}
+      SQLITE_PATH: /data/db.sqlite3
+      STATIC_ROOT: /staticfiles
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/data
+      - ./backend/staticfiles:/staticfiles
+    restart: unless-stopped
