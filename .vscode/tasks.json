@@ -6,12 +6,21 @@
 			"command": "bun dev:back",
 			"problemMatcher": [],
 			"label": "dev:back",
+			"options": {
+				"cwd": "${workspaceFolder}",
+				"env": {
+					"DJANGO_DEBUG": "True"
+				}
+			}
 		},
 		{
 			"type": "shell",
 			"command": "bun dev:front",
 			"problemMatcher": [],
 			"label": "dev:front",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
 		},
 		{
 			"label": "dev:all",

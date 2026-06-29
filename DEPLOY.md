@@ -1,31 +1,18 @@
-# Deploy with Docker, Gunicorn, and Existing Caddy
+# Deploy with Docker and Gunicorn
 
-This deployment uses Docker for the Django backend and for one-off frontend builds. It reuses the Caddy already installed on the server.
+This deployment uses Docker for the Django backend and for one-off frontend builds.
 
 - Gunicorn runs Django on `127.0.0.1:8000`.
-- Caddy serves `/var/www/html/exam` and `backend/staticfiles`.
-- Caddy reverse proxies `/api/*` and `/admin/*` to Gunicorn.
 - SQLite is stored in `./data/db.sqlite3`.
 - `deploy.sh` runs the repeatable deployment steps.
 
 ## 1. Server prerequisites
 
 - DNS points your domain to the server.
-- Ports `80` and `443` are open.
 - Docker and Docker Compose are installed.
-- Caddy is already installed and running on the host.
+- Your reverse proxy is configured outside this repository.
 
-## 2. Configure host Caddy once
-
-Add the `Caddyfile.example` block to `/etc/caddy/Caddyfile`.
-
-Replace `/opt/codequest` with the absolute path of this repository on your server. The frontend path defaults to `/var/www/html/exam`.
-
-```bash
-sudo caddy reload --config /etc/caddy/Caddyfile
-```
-
-## 3. Configure environment
+## 2. Configure environment
 
 ```bash
 cp .env.example .env
@@ -40,7 +27,7 @@ FRONTEND_DIST_DIR=/var/www/html/exam
 
 `deploy.sh` will replace the default `DJANGO_SECRET_KEY` automatically.
 
-## 4. Deploy
+## 3. Deploy
 
 ```bash
 sh deploy.sh
@@ -50,12 +37,10 @@ The script runs:
 
 - create `.env` from `.env.example` if missing
 - create `data/`, `backend/staticfiles/`, and `${FRONTEND_DIST_DIR}`
-- build frontend with Docker into `${FRONTEND_DIST_DIR}`
-- build and start the backend container
-- run `python manage.py check`
-- reload Caddy when possible
-
-If your user cannot reload Caddy without a password, the script prints the manual reload command.
+- build frontend with a one-off `oven/bun:1` container into `${FRONTEND_DIST_DIR}`
+- build the backend image
+- run `migrate`, `collectstatic`, and `check` in one-off backend containers
+- start the backend Gunicorn container
 
 Create an admin user after the first deploy:
 
@@ -63,7 +48,7 @@ Create an admin user after the first deploy:
 docker compose exec backend python manage.py createsuperuser
 ```
 
-## 5. Verify
+## 4. Verify
 
 - Frontend: `https://exam.mydomain.com/`
 - Django Admin: `https://exam.mydomain.com/admin/`
@@ -73,7 +58,7 @@ docker compose exec backend python manage.py createsuperuser
 docker compose exec backend python manage.py check
 ```
 
-## 6. Data and cleanup
+## 5. Data and cleanup
 
 Persistent files are stored on the host:
 

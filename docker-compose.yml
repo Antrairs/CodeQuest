@@ -1,14 +1,4 @@
 services:
-  frontend-build:
-    image: oven/bun:1
-    working_dir: /app
-    command: sh -c "bun install --frozen-lockfile && bun run build && mkdir -p /dist && rm -rf /dist/* && cp -a dist/. /dist/"
-    volumes:
-      - ./frontend:/app
-      - ${FRONTEND_DIST_DIR:-/var/www/html/exam}:/dist
-    profiles:
-      - build
-
   backend:
     build:
       context: ./backend

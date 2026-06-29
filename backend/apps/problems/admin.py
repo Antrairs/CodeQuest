@@ -1,7 +1,11 @@
 from django import forms
 from django.contrib import admin
+from django.contrib import messages
 from django.db import models
+from django.shortcuts import redirect, render
+from django.urls import path, reverse
 
+from .importer import import_problem_json
 from .models import Category, Problem, TestCase
 
 
@@ -45,6 +49,10 @@ class TestCaseInline(admin.TabularInline):
     }
 
 
+class ProblemImportForm(forms.Form):
+    file = forms.FileField(label="JSON 文件")
+
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     search_fields = ("name",)
@@ -53,6 +61,7 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
     form = ProblemAdminForm
+    change_list_template = "admin/problems/problem/change_list.html"
     list_display = ("title", "category", "difficulty", "is_published", "created_at")
     list_filter = ("category", "difficulty", "is_published")
     search_fields = ("title", "description")
@@ -85,6 +94,41 @@ class ProblemAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "import/",
+                self.admin_site.admin_view(self.import_view),
+                name="problems_problem_import",
+            ),
+        ]
+        return custom_urls + urls
+
+    def import_view(self, request):
+        if request.method == "POST":
+            form = ProblemImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                result = import_problem_json(form.cleaned_data["file"])
+                if result.created_count:
+                    messages.success(request, f"成功导入 {result.created_count} 道题。")
+                if result.skipped_count:
+                    messages.warning(request, f"跳过 {result.skipped_count} 道重复题。")
+                for error in result.errors:
+                    messages.error(request, error)
+                if not result.errors:
+                    return redirect(reverse("admin:problems_problem_changelist"))
+        else:
+            form = ProblemImportForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "form": form,
+            "title": "批量导入题库",
+        }
+        return render(request, "admin/problems/problem/import.html", context)
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)

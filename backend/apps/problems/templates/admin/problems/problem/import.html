@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div id="content-main">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <fieldset class="module aligned">
+        <div class="form-row">
+          {{ form.file.errors }}
+          {{ form.file.label_tag }}
+          {{ form.file }}
+        </div>
+      </fieldset>
+      <div class="submit-row">
+        <input type="submit" value="导入" class="default">
+        <a href="{% url 'admin:problems_problem_changelist' %}" class="closelink">返回题目列表</a>
+      </div>
+    </form>
+
+    <h2>JSON 格式示例</h2>
+    <pre>{
+  "problems": [
+    {
+      "title": "打印 hello world",
+      "description": "请输出 hello world",
+      "difficulty": "beginner",
+      "category": "Python 基础",
+      "input_description": "无输入",
+      "output_description": "输出 hello world",
+      "sample_input": "",
+      "sample_output": "hello world",
+      "starter_code": "print()",
+      "explanation": "使用 print 输出文本。",
+      "is_published": false,
+      "test_cases": [
+        {
+          "stdin": "",
+          "expected_stdout": "hello world",
+          "is_public": true,
+          "order": 1
+        }
+      ]
+    }
+  ]
+}</pre>
+  </div>
+{% endblock %}
