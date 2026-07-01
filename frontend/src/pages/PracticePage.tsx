@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   Code2,
   Maximize2,
   Minimize2,
@@ -244,25 +243,6 @@ function CodePreview({
   )
 }
 
-function TextBlock({
-  label,
-  value,
-  fallback,
-}: {
-  label: string
-  value: string
-  fallback: string
-}) {
-  return (
-    <div>
-      <div className="mb-2 text-sm font-bold text-slate-950">{label}</div>
-      <div className="whitespace-pre-wrap break-words text-sm leading-7 text-slate-600">
-        {displayText(value, fallback)}
-      </div>
-    </div>
-  )
-}
-
 function ExampleBlock({ label, value }: { label: string; value: string }) {
   const content = displayText(value, '无')
 
@@ -333,7 +313,7 @@ export function PracticePage({ problemId, user, navigate }: PracticePageProps) {
         if (cancelled) return
         setProblem(response.problem)
         setCode(response.problem.starter_code || '')
-        setCustomInput(response.problem.sample_input)
+        setCustomInput(response.problem.public_test_cases?.[0]?.stdin ?? '')
 
         api
           .problems({})
@@ -370,8 +350,8 @@ export function PracticePage({ problemId, user, navigate }: PracticePageProps) {
   const actionLooksDisabled = !pythonReady || busy
   const publicCases = problem?.public_test_cases ?? []
   const progress = judge ? Math.round((judge.passedCount / Math.max(judge.totalCount, 1)) * 100) : 30
-  const sampleInput = problem?.sample_input || publicCases[0]?.stdin || ''
-  const sampleOutput = problem?.sample_output || publicCases[0]?.expected_stdout || ''
+  const sampleInput = publicCases[0]?.stdin || ''
+  const sampleOutput = publicCases[0]?.expected_stdout || ''
   const sampleCode = problem?.starter_code || ''
 
   const workspaceStyle = {
@@ -608,25 +588,6 @@ export function PracticePage({ problemId, user, navigate }: PracticePageProps) {
           </p>
 
           <div className="my-6 h-px bg-slate-200" />
-
-          <section className="space-y-4">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950">
-              <BookOpen className="h-5 w-5" />
-              题目说明
-            </h2>
-            <div className="space-y-4">
-              <TextBlock
-                label="输入说明"
-                value={problem.input_description}
-                fallback="无特殊输入说明。"
-              />
-              <TextBlock
-                label="输出说明"
-                value={problem.output_description}
-                fallback="按题目要求输出结果。"
-              />
-            </div>
-          </section>
 
           <section className="mt-7 space-y-3">
             <h2 className="text-lg font-bold text-slate-950">样例</h2>

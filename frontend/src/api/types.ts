@@ -1,6 +1,7 @@
 export type User = {
   id: number
   username: string
+  student_id: string
 }
 
 export type Category = {
@@ -34,10 +35,6 @@ export type Problem = {
   difficulty: string
   difficulty_label: string
   category: Category | null
-  input_description: string
-  output_description: string
-  sample_input: string
-  sample_output: string
   starter_code: string
   explanation: string
   is_published: boolean
@@ -98,3 +95,42 @@ export type WrongProblemListResponse = {
   wrong_problems: WrongProblem[]
 }
 
+export type ActivityProblem = {
+  id: number
+  title: string
+  description: string
+  difficulty: string
+  difficulty_label: string
+  category: string
+  is_passed_in_activity: boolean
+}
+
+export type ActivityProgress = {
+  completed_count: number
+  required_count: number
+  is_completed: boolean
+  can_claim: boolean
+  has_claimed: boolean
+  claimed_at: string | null
+  view_count: number
+}
+
+export type Activity = {
+  id: number
+  name: string
+  description: string
+  start_at: string
+  end_at: string
+  required_problem_count: number
+  status: string
+  status_label: string
+  problem_count: number
+  progress: ActivityProgress
+  problems?: ActivityProblem[]
+  checkin_code?: string
+  checkin_qr_image_url?: string
+}
+
+export type ActivityListResponse = {
+  activities: Activity[]
+}

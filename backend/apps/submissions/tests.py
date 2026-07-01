@@ -15,10 +15,6 @@ class SubmissionApiFlowTests(TestCase):
             description="输入两个整数，输出它们的和。",
             difficulty=Problem.Difficulty.BEGINNER,
             category=category,
-            input_description="两行整数。",
-            output_description="一个整数。",
-            sample_input="1\n2\n",
-            sample_output="3\n",
             starter_code="a = int(input())\nb = int(input())\nprint(a + b)",
             is_published=True,
         )

@@ -1,4 +1,6 @@
 import type {
+  Activity,
+  ActivityListResponse,
   PracticeStatsResponse,
   Problem,
   ProblemListResponse,
@@ -96,12 +98,41 @@ export type SubmissionPayload = {
   error_message: string
 }
 
+export type SchoolRegisterStartResponse = {
+  session_id: string
+  qr_image_data: string
+  expires_in: number
+}
+
+export type SchoolRegisterStatusResponse = {
+  status: 'pending' | 'expired' | 'error' | 'verified' | 'authenticated'
+  school_identity?: {
+    student_id: string
+  }
+  user?: User
+  error?: string
+}
+
 export const api = {
   me() {
     return request<{ user: User | null }>('/auth/me/')
   },
   register(username: string, password: string) {
     return request<{ user: User }>('/auth/register/', {
+      method: 'POST',
+      body: { username, password },
+    })
+  },
+  startSchoolRegistration() {
+    return request<SchoolRegisterStartResponse>('/auth/register/school/start/', {
+      method: 'POST',
+    })
+  },
+  schoolRegistrationStatus(sessionId: string) {
+    return request<SchoolRegisterStatusResponse>(`/auth/register/school/${sessionId}/status/`)
+  },
+  completeSchoolRegistration(username: string, password: string) {
+    return request<{ user: User }>('/auth/register/school/complete/', {
       method: 'POST',
       body: { username, password },
     })
@@ -137,5 +168,14 @@ export const api = {
   },
   wrongProblems() {
     return request<WrongProblemListResponse>('/submissions/wrong-problems/')
+  },
+  activities() {
+    return request<ActivityListResponse>('/activities/')
+  },
+  activity(activityId: number) {
+    return request<{ activity: Activity }>(`/activities/${activityId}/`)
+  },
+  claimActivity(activityId: number) {
+    return request<{ activity: Activity }>(`/activities/${activityId}/claim/`, { method: 'POST' })
   },
 }

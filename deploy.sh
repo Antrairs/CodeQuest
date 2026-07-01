@@ -4,10 +4,30 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$ROOT_DIR"
 
+IMAGE_NAME="codequest-backend"
+CONTAINER_NAME="codequest-backend"
 DEFAULT_SECRET="change-me-to-a-long-random-secret"
 
+ensure_dir() {
+  [ -d "$1" ] || mkdir -p "$1" 2>/dev/null || {
+    sudo mkdir -p "$1"
+    sudo chown "$(id -u):$(id -g)" "$1"
+  }
+}
+
+backend_env() {
+  docker run --rm \
+    --env-file .env \
+    -e DJANGO_ALLOWED_HOSTS="$DOMAIN" \
+    -e DJANGO_CSRF_TRUSTED_ORIGINS="https://$DOMAIN" \
+    -e SQLITE_PATH=/data/db.sqlite3 \
+    -e STATIC_ROOT=/data/static \
+    -e MEDIA_ROOT=/data/media \
+    -v "$DATA_DIR:/data" \
+    "$IMAGE_NAME" "$@"
+}
+
 command -v docker >/dev/null 2>&1 || { echo "Docker is required" >&2; exit 1; }
-docker compose version >/dev/null 2>&1 || { echo "Docker Compose v2 is required" >&2; exit 1; }
 
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -25,13 +45,12 @@ set -a
 set +a
 
 : "${DOMAIN:?DOMAIN is required in .env}"
-FRONTEND_DIST_DIR="${FRONTEND_DIST_DIR:-/var/www/html/exam}"
+FRONTEND_DIST_DIR="${FRONTEND_DIST_DIR:-/var/www/exam}"
+DATA_DIR="${DATA_DIR:-/data/codequest}"
 
-[ -d "$FRONTEND_DIST_DIR" ] || mkdir -p "$FRONTEND_DIST_DIR" 2>/dev/null || {
-  sudo mkdir -p "$FRONTEND_DIST_DIR"
-  sudo chown "$(id -u):$(id -g)" "$FRONTEND_DIST_DIR"
-}
-mkdir -p data backend/staticfiles
+ensure_dir "$FRONTEND_DIST_DIR"
+ensure_dir "$DATA_DIR"
+mkdir -p "$DATA_DIR/static" "$DATA_DIR/media"
 
 echo "Building frontend into $FRONTEND_DIST_DIR"
 docker run --rm \
@@ -41,16 +60,28 @@ docker run --rm \
   oven/bun:1 \
   sh -c "bun install --frozen-lockfile && bun run build && mkdir -p /dist && rm -rf /dist/* && cp -a dist/. /dist/"
 
-echo "Building backend"
-docker compose build backend
+echo "Building backend image"
+docker build -t "$IMAGE_NAME" ./backend
 
 echo "Preparing database and static files"
-docker compose run --rm backend python manage.py migrate --noinput
-docker compose run --rm backend python manage.py collectstatic --noinput
-docker compose run --rm backend python manage.py check
+backend_env python manage.py migrate --noinput
+backend_env python manage.py collectstatic --noinput
+backend_env python manage.py check
 
-echo "Starting backend"
-docker compose up -d backend
+echo "Starting backend container"
+docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+docker run -d \
+  --name "$CONTAINER_NAME" \
+  --restart unless-stopped \
+  --env-file .env \
+  -e DJANGO_ALLOWED_HOSTS="$DOMAIN" \
+  -e DJANGO_CSRF_TRUSTED_ORIGINS="https://$DOMAIN" \
+  -e SQLITE_PATH=/data/db.sqlite3 \
+  -e STATIC_ROOT=/data/static \
+  -e MEDIA_ROOT=/data/media \
+  -v "$DATA_DIR:/data" \
+  -p 127.0.0.1:8000:8000 \
+  "$IMAGE_NAME"
 
 echo "Deployment complete:"
 echo "- Frontend: https://$DOMAIN/"

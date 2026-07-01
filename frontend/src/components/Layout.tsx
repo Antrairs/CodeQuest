@@ -1,6 +1,7 @@
 import {
   Bell,
   BookOpen,
+  CalendarDays,
   ChevronRight,
   Code2,
   GraduationCap,
@@ -46,6 +47,7 @@ type BreadcrumbItem = {
 const navItems = [
   { href: '/', icon: GraduationCap, label: '学习' },
   { href: '/problems', icon: NotebookTabs, label: '题库' },
+  { href: '/activities', icon: CalendarDays, label: '活动' },
   { href: '/practice-log', icon: SquarePen, label: '练习' },
   { href: '/wrong-book', icon: TriangleAlert, label: '错题' },
 ]
@@ -85,6 +87,14 @@ function breadcrumbsFor(currentPath: string): BreadcrumbItem[] {
 
   if (currentPath.startsWith('/problems')) {
     return [root, { label: '题库', href: '/problems', icon: NotebookTabs }]
+  }
+
+  if (currentPath.startsWith('/activities/')) {
+    return [root, { label: '活动', href: '/activities', icon: CalendarDays }, { label: '活动详情' }]
+  }
+
+  if (currentPath.startsWith('/activities')) {
+    return [root, { label: '活动', href: '/activities', icon: CalendarDays }]
   }
 
   if (currentPath.startsWith('/practice-log')) {

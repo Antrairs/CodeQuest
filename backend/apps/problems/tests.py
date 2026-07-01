@@ -35,8 +35,7 @@ class ProblemImportTests(TestCase):
         self.assertEqual(result.errors, [])
         problem = Problem.objects.get(title="打印三角形")
         self.assertEqual(problem.category, Category.objects.get(name="Python 基础"))
-        self.assertFalse(problem.is_published)
-        self.assertEqual(problem.sample_output, "  *\n ***\n*****")
+        self.assertTrue(problem.is_published)
         test_case = ProblemTestCase.objects.get(problem=problem)
         self.assertEqual(test_case.expected_stdout, "  *\n ***\n*****")
 

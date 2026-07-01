@@ -17,27 +17,78 @@
       </div>
     </form>
 
-    <h2>JSON 格式示例</h2>
+    <h2>JSON 模板</h2>
+    <p>
+      顶层必须是对象，且只包含 problems 数组。
+      difficulty 只能是 beginner、basic、intermediate。test_cases 至少 1 个。
+      expected_stdout 会保留前导空格和换行。is_published 可省略，省略时默认发布。
+    </p>
     <pre>{
   "problems": [
     {
       "title": "打印 hello world",
-      "description": "请输出 hello world",
+      "description": "请编写 Python 程序，输出一行 hello world。",
       "difficulty": "beginner",
       "category": "Python 基础",
-      "input_description": "无输入",
-      "output_description": "输出 hello world",
-      "sample_input": "",
-      "sample_output": "hello world",
-      "starter_code": "print()",
-      "explanation": "使用 print 输出文本。",
-      "is_published": false,
+      "starter_code": "# 在这里写代码\n",
+      "explanation": "使用 print 函数输出字符串。注意字符串需要用引号包裹。",
+      "is_published": true,
       "test_cases": [
         {
           "stdin": "",
           "expected_stdout": "hello world",
           "is_public": true,
           "order": 1
+        }
+      ]
+    },
+    {
+      "title": "打印三角形",
+      "description": "请输出一个由星号组成的三行三角形。第一行 1 个星号，第二行 3 个星号，第三行 5 个星号，并保持居中。",
+      "difficulty": "basic",
+      "category": "循环与输出",
+      "starter_code": "print()\n",
+      "explanation": "可以直接输出多行字符串，也可以使用循环拼接空格和星号。判题会去掉整体首尾空白，但每一行内部空格必须正确。",
+      "test_cases": [
+        {
+          "stdin": "",
+          "expected_stdout": "  *\n ***\n*****",
+          "is_public": true,
+          "order": 1
+        },
+        {
+          "stdin": "",
+          "expected_stdout": "  *\n ***\n*****",
+          "is_public": false,
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "两数相加",
+      "description": "输入两个整数，输出它们的和。",
+      "difficulty": "beginner",
+      "category": "输入与计算",
+      "starter_code": "a = int(input())\nb = int(input())\nprint()\n",
+      "explanation": "使用 input 读取字符串，再用 int 转成整数，最后输出 a + b。",
+      "test_cases": [
+        {
+          "stdin": "1\n2\n",
+          "expected_stdout": "3",
+          "is_public": true,
+          "order": 1
+        },
+        {
+          "stdin": "-5\n8\n",
+          "expected_stdout": "3",
+          "is_public": false,
+          "order": 2
+        },
+        {
+          "stdin": "100\n200\n",
+          "expected_stdout": "300",
+          "is_public": false,
+          "order": 3
         }
       ]
     }

@@ -1,0 +1,52 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div id="content-main">
+    <div class="module">
+      <h2>活动概览</h2>
+      <table>
+        <tbody>
+          <tr><th>活动名称</th><td>{{ activity.name }}</td></tr>
+          <tr><th>参与人数</th><td>{{ summary.participant_count }}</td></tr>
+          <tr><th>完成人数</th><td>{{ summary.completed_count }}</td></tr>
+          <tr><th>领取人数</th><td>{{ summary.claimed_count }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="submit-row">
+      <a class="button" href="{{ export_url }}">导出名单</a>
+      <a class="closelink" href="{% url 'admin:activities_activity_changelist' %}">返回活动列表</a>
+    </div>
+
+    <div class="module">
+      <h2>用户完成情况</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>用户名</th>
+            <th>通过题目数</th>
+            <th>是否完成</th>
+            <th>是否领取</th>
+            <th>领取时间</th>
+            <th>查看次数</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.user.username }}</td>
+              <td>{{ row.passed_count }}</td>
+              <td>{% if row.is_completed %}是{% else %}否{% endif %}</td>
+              <td>{% if row.claim %}是{% else %}否{% endif %}</td>
+              <td>{% if row.claim %}{{ row.claim.claimed_at }}{% endif %}</td>
+              <td>{% if row.claim %}{{ row.claim.view_count }}{% else %}0{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">暂无参与用户。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

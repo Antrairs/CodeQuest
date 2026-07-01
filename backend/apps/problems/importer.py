@@ -89,25 +89,14 @@ def _create_problem(
     raw_cases: list[dict[str, Any]],
 ) -> None:
     category = _get_category(raw_problem.get("category"))
-    first_public_case = next((case for case in raw_cases if case.get("is_public", False)), None)
-    sample_input = _text(raw_problem.get("sample_input"))
-    sample_output = _text(raw_problem.get("sample_output"))
-    if first_public_case:
-        sample_input = sample_input or _text(first_public_case.get("stdin"))
-        sample_output = sample_output or _text(first_public_case.get("expected_stdout"))
-
     problem = Problem.objects.create(
         title=title,
         description=_text(raw_problem.get("description")),
         difficulty=difficulty,
         category=category,
-        input_description=_text(raw_problem.get("input_description")),
-        output_description=_text(raw_problem.get("output_description")),
-        sample_input=sample_input,
-        sample_output=sample_output,
         starter_code=_text(raw_problem.get("starter_code")),
         explanation=_text(raw_problem.get("explanation")),
-        is_published=bool(raw_problem.get("is_published", False)),
+        is_published=_bool(raw_problem.get("is_published"), True),
     )
 
     test_cases = [
@@ -115,7 +104,7 @@ def _create_problem(
             problem=problem,
             stdin=_text(raw_case.get("stdin")),
             expected_stdout=raw_case["expected_stdout"],
-            is_public=bool(raw_case.get("is_public", False)),
+            is_public=_bool(raw_case.get("is_public"), False),
             order=_int(raw_case.get("order"), index),
         )
         for index, raw_case in enumerate(raw_cases, start=1)
@@ -136,3 +125,7 @@ def _text(value: Any) -> str:
 
 def _int(value: Any, default: int) -> int:
     return value if isinstance(value, int) and value >= 0 else default
+
+
+def _bool(value: Any, default: bool) -> bool:
+    return value if isinstance(value, bool) else default

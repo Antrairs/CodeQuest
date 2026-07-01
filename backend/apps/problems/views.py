@@ -51,10 +51,6 @@ def serialize_problem(problem: Problem, user, include_cases: bool = False) -> di
         "difficulty": problem.difficulty,
         "difficulty_label": problem.get_difficulty_display(),
         "category": serialize_category(problem.category),
-        "input_description": problem.input_description,
-        "output_description": problem.output_description,
-        "sample_input": problem.sample_input,
-        "sample_output": problem.sample_output,
         "starter_code": problem.starter_code,
         "explanation": problem.explanation,
         "is_published": problem.is_published,
@@ -118,4 +114,3 @@ def problem_detail(request, problem_id: int):
         id=problem_id,
     )
     return JsonResponse({"problem": serialize_problem(problem, request.user, include_cases=True)})
-

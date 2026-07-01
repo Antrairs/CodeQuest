@@ -32,10 +32,6 @@ class Problem(models.Model):
         blank=True,
         related_name="problems",
     )
-    input_description = models.TextField(blank=True)
-    output_description = models.TextField(blank=True)
-    sample_input = models.TextField(blank=True)
-    sample_output = models.TextField(blank=True)
     starter_code = models.TextField(blank=True)
     explanation = models.TextField(blank=True)
     is_published = models.BooleanField(default=False)
@@ -66,4 +62,3 @@ class TestCase(models.Model):
     def __str__(self) -> str:
         visibility = "public" if self.is_public else "hidden"
         return f"{self.problem.title} #{self.order} ({visibility})"
-

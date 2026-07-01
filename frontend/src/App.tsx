@@ -7,6 +7,8 @@ import { Layout } from './components/Layout'
 import { parseRoute } from './lib/router'
 import type { Route } from './lib/router'
 import { AuthPage } from './pages/AuthPage'
+import { ActivityDetailPage } from './pages/ActivityDetailPage'
+import { ActivityListPage } from './pages/ActivityListPage'
 import { HomePage } from './pages/HomePage'
 import { MyPracticePage } from './pages/MyPracticePage'
 import { PracticePage } from './pages/PracticePage'
@@ -56,6 +58,12 @@ function App() {
     }
     if (route.name === 'problems') {
       return <ProblemListPage navigate={navigate} />
+    }
+    if (route.name === 'activities') {
+      return <ActivityListPage user={user} navigate={navigate} />
+    }
+    if (route.name === 'activity') {
+      return <ActivityDetailPage activityId={route.activityId} user={user} navigate={navigate} />
     }
     if (route.name === 'practice') {
       return <PracticePage problemId={route.problemId} user={user} navigate={navigate} />
