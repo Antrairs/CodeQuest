@@ -1,5 +1,6 @@
 import csv
 
+from django import forms
 from django.contrib import admin
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -8,6 +9,18 @@ from django.utils.html import format_html
 
 from .models import Activity, ActivityCheckinClaim, ActivityProblem
 from .services import activity_summary, activity_user_rows
+
+
+class ActivityAdminForm(forms.ModelForm):
+    class Meta:
+        model = Activity
+        fields = "__all__"
+
+    def clean_checkin_qr_image(self):
+        image = self.cleaned_data.get("checkin_qr_image")
+        if image and image.size > 2 * 1024 * 1024:
+            raise forms.ValidationError("二维码图片不能超过 2 MB。")
+        return image
 
 
 class ActivityProblemInline(admin.TabularInline):
@@ -30,6 +43,7 @@ class ActivityCheckinClaimInline(admin.TabularInline):
 
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
+    form = ActivityAdminForm
     list_display = (
         "name",
         "status",
@@ -67,13 +81,18 @@ class ActivityAdmin(admin.ModelAdmin):
         ] + urls
 
     def participant_count(self, obj):
-        return activity_summary(obj)["participant_count"]
+        return self._summary(obj)["participant_count"]
 
     def completed_count(self, obj):
-        return activity_summary(obj)["completed_count"]
+        return self._summary(obj)["completed_count"]
 
     def claimed_count(self, obj):
-        return activity_summary(obj)["claimed_count"]
+        return self._summary(obj)["claimed_count"]
+
+    def _summary(self, obj):
+        if not hasattr(obj, "_activity_summary"):
+            obj._activity_summary = activity_summary(obj)
+        return obj._activity_summary
 
     def export_view(self, request, activity_id):
         activity = Activity.objects.get(id=activity_id)
@@ -103,7 +122,7 @@ class ActivityAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
             "title": f"活动数据：{activity.name}",
             "activity": activity,
-            "summary": activity_summary(activity),
+            "summary": activity_summary(activity, rows),
             "rows": rows,
             "export_url": reverse("admin:activities_activity_export", args=[activity.id]),
         }

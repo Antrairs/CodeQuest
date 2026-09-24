@@ -1,6 +1,9 @@
 import json
+import re
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
@@ -36,15 +39,24 @@ def _create_school_user(body: dict):
 
     if not username or not password:
         raise ValueError("用户名和密码不能为空")
-    if len(password) < 6:
-        raise ValueError("密码至少需要 6 位")
+    if not 3 <= len(username) <= 32:
+        raise ValueError("用户名长度必须为 3 至 32 个字符")
+    if len(password) > 128:
+        raise ValueError("密码不能超过 128 个字符")
     if not student_id:
         raise ValueError("请先完成学校扫码认证")
+    if not re.fullmatch(r"\d{8,32}", student_id):
+        raise ValueError("学校认证返回了无效学号")
     if User.objects.filter(username=username).exists():
         raise ValueError("用户名已存在")
     if User.objects.filter(student_id=student_id).exists():
         raise ValueError("该学号已注册，请直接登录")
 
+    user = User(username=username, student_id=student_id)
+    try:
+        validate_password(password, user)
+    except ValidationError as error:
+        raise ValueError("；".join(error.messages)) from error
     return User.objects.create_user(username=username, password=password, student_id=student_id)
 
 
@@ -119,6 +131,8 @@ def login_view(request):
     body = json_body(request)
     username = body.get("username", "").strip()
     password = body.get("password", "")
+    if len(username) > 32 or len(password) > 128:
+        return JsonResponse({"error": "用户名或密码错误"}, status=400)
     user = authenticate(request, username=username, password=password)
     if user is None:
         return JsonResponse({"error": "用户名或密码错误"}, status=400)

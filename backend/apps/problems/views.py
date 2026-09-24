@@ -1,3 +1,6 @@
+from django.core.cache import cache
+from django.core.paginator import Paginator
+from django.db.models import Exists, OuterRef
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
@@ -29,6 +32,13 @@ def user_problem_state(problem: Problem, user) -> dict:
             "is_passed": False,
             "has_failed": False,
             "is_wrong_resolved": False,
+        }
+
+    if hasattr(problem, "user_is_passed"):
+        return {
+            "is_passed": problem.user_is_passed,
+            "has_failed": problem.user_has_failed,
+            "is_wrong_resolved": problem.user_wrong_resolved,
         }
 
     wrong = WrongProblem.objects.filter(user=user, problem=problem).first()
@@ -78,31 +88,43 @@ def problem_list(request):
         problems = problems.filter(difficulty=difficulty)
 
     status = request.GET.get("status")
-    if request.user.is_authenticated and status:
-        if status == "passed":
-            ids = Submission.objects.filter(
-                user=request.user,
-                is_passed=True,
-            ).values("problem_id")
-            problems = problems.filter(id__in=ids)
-        elif status == "failed":
-            ids = WrongProblem.objects.filter(
-                user=request.user,
-                is_resolved=False,
-            ).values("problem_id")
-            problems = problems.filter(id__in=ids)
-        elif status == "untouched":
-            ids = Submission.objects.filter(user=request.user).values("problem_id")
-            problems = problems.exclude(id__in=ids)
+    if request.user.is_authenticated:
+        submissions = Submission.objects.filter(user=request.user, problem_id=OuterRef("pk"))
+        wrong_records = WrongProblem.objects.filter(user=request.user, problem_id=OuterRef("pk"))
+        problems = problems.annotate(
+            user_is_passed=Exists(submissions.filter(is_passed=True)),
+            user_has_submission=Exists(submissions),
+            user_has_failed=Exists(wrong_records),
+            user_wrong_resolved=Exists(wrong_records.filter(is_resolved=True)),
+        )
 
+        if status == "passed":
+            problems = problems.filter(user_is_passed=True)
+        elif status == "failed":
+            problems = problems.filter(user_has_failed=True, user_wrong_resolved=False)
+        elif status == "untouched":
+            problems = problems.filter(user_has_submission=False)
+
+    page = Paginator(problems, 24).get_page(request.GET.get("page"))
+    categories = cache.get("problem_categories")
+    if categories is None:
+        categories = [serialize_category(category) for category in Category.objects.all()]
+        cache.set("problem_categories", categories, 300)
     return JsonResponse(
         {
-            "problems": [serialize_problem(problem, request.user) for problem in problems],
-            "categories": [serialize_category(category) for category in Category.objects.all()],
+            "problems": [serialize_problem(problem, request.user) for problem in page],
+            "categories": categories,
             "difficulties": [
                 {"value": value, "label": label}
                 for value, label in Problem.Difficulty.choices
             ],
+            "pagination": {
+                "page": page.number,
+                "pages": page.paginator.num_pages,
+                "count": page.paginator.count,
+                "has_previous": page.has_previous(),
+                "has_next": page.has_next(),
+            },
         }
     )
 

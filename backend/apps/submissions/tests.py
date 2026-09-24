@@ -1,5 +1,6 @@
 import json
 
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 
 from apps.problems.models import Category, Problem, TestCase as ProblemTestCase
@@ -24,6 +25,11 @@ class SubmissionApiFlowTests(TestCase):
             expected_stdout="3\n",
             is_public=True,
             order=1,
+        )
+        self.user = get_user_model().objects.create_user(
+            username="learner",
+            password="password123",
+            student_id="20240001",
         )
 
     def post_json(self, path: str, payload: dict):
@@ -53,11 +59,7 @@ class SubmissionApiFlowTests(TestCase):
         )
         self.assertEqual(anonymous_submit.status_code, 401)
 
-        register_response = self.post_json(
-            "/api/auth/register/",
-            {"username": "learner", "password": "password123"},
-        )
-        self.assertEqual(register_response.status_code, 201)
+        self.client.force_login(self.user)
 
         failed_submit = self.post_json(
             "/api/submissions/",
@@ -95,3 +97,20 @@ class SubmissionApiFlowTests(TestCase):
         stats_response = self.client.get("/api/submissions/stats/")
         self.assertEqual(stats_response.status_code, 200)
         self.assertEqual(stats_response.json()["stats"]["passed_count"], 1)
+
+    def test_submission_rejects_inconsistent_counts(self):
+        self.client.force_login(self.user)
+
+        response = self.post_json(
+            "/api/submissions/",
+            {
+                "problem_id": self.problem.id,
+                "code": "print(3)",
+                "is_passed": True,
+                "passed_count": 0,
+                "total_count": 1,
+                "error_message": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)

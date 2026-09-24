@@ -1,6 +1,9 @@
 import json
 from functools import wraps
 
+from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
+from django.db.models import Count, F, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -71,15 +74,36 @@ def create_submission(request):
     body = json_body(request)
     problem = get_object_or_404(Problem, id=body.get("problem_id"), is_published=True)
 
-    submission = Submission.objects.create(
+    code = body.get("code")
+    error_message = body.get("error_message", "")
+    passed_count = body.get("passed_count")
+    total_count = body.get("total_count")
+    is_passed = body.get("is_passed")
+    if (
+        not isinstance(code, str)
+        or not isinstance(error_message, str)
+        or not isinstance(passed_count, int)
+        or isinstance(passed_count, bool)
+        or not isinstance(total_count, int)
+        or isinstance(total_count, bool)
+        or not isinstance(is_passed, bool)
+    ):
+        return JsonResponse({"error": "提交数据格式不正确。"}, status=400)
+
+    submission = Submission(
         user=request.user,
         problem=problem,
-        code=body.get("code", ""),
-        is_passed=bool(body.get("is_passed")),
-        passed_count=int(body.get("passed_count") or 0),
-        total_count=int(body.get("total_count") or 0),
-        error_message=body.get("error_message", ""),
+        code=code,
+        is_passed=is_passed,
+        passed_count=passed_count,
+        total_count=total_count,
+        error_message=error_message,
     )
+    try:
+        submission.full_clean()
+    except ValidationError as error:
+        return JsonResponse({"error": "；".join(error.messages)}, status=400)
+    submission.save()
 
     if submission.is_passed:
         WrongProblem.objects.filter(user=request.user, problem=problem).update(is_resolved=True)
@@ -89,10 +113,11 @@ def create_submission(request):
             problem=problem,
             defaults={"wrong_count": 0},
         )
-        wrong.wrong_count += 1
-        wrong.last_wrong_at = timezone.now()
-        wrong.is_resolved = False
-        wrong.save(update_fields=["wrong_count", "last_wrong_at", "is_resolved"])
+        WrongProblem.objects.filter(pk=wrong.pk).update(
+            wrong_count=F("wrong_count") + 1,
+            last_wrong_at=timezone.now(),
+            is_resolved=False,
+        )
 
     return JsonResponse({"submission": serialize_submission(submission)}, status=201)
 
@@ -101,8 +126,12 @@ def create_submission(request):
 @require_auth
 def practice_stats(request):
     submissions = Submission.objects.filter(user=request.user).select_related("problem", "problem__category")
-    practiced_count = submissions.values("problem_id").distinct().count()
-    passed_problem_count = submissions.filter(is_passed=True).values("problem_id").distinct().count()
+    counts = submissions.aggregate(
+        practiced_count=Count("problem_id", distinct=True),
+        passed_problem_count=Count("problem_id", filter=Q(is_passed=True), distinct=True),
+    )
+    practiced_count = counts["practiced_count"]
+    passed_problem_count = counts["passed_problem_count"]
     unresolved_wrong_count = WrongProblem.objects.filter(
         user=request.user,
         is_resolved=False,
@@ -132,7 +161,16 @@ def wrong_problem_list(request):
         "problem",
         "problem__category",
     )
+    page = Paginator(wrong_problems, 20).get_page(request.GET.get("page"))
     return JsonResponse(
-        {"wrong_problems": [serialize_wrong_problem(wrong) for wrong in wrong_problems]}
+        {
+            "wrong_problems": [serialize_wrong_problem(wrong) for wrong in page],
+            "pagination": {
+                "page": page.number,
+                "pages": page.paginator.num_pages,
+                "count": page.paginator.count,
+                "has_previous": page.has_previous(),
+                "has_next": page.has_next(),
+            },
+        }
     )
-

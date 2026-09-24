@@ -80,6 +80,26 @@ class ProblemImportTests(TestCase):
         self.assertEqual(Problem.objects.count(), 0)
         self.assertEqual(len(result.errors), 1)
 
+    def test_problem_list_is_paginated(self):
+        Problem.objects.bulk_create(
+            [
+                Problem(
+                    title=f"题目 {index}",
+                    description="描述",
+                    difficulty=Problem.Difficulty.BEGINNER,
+                    is_published=True,
+                )
+                for index in range(25)
+            ]
+        )
+
+        first = self.client.get("/api/problems/")
+        second = self.client.get("/api/problems/?page=2")
+
+        self.assertEqual(len(first.json()["problems"]), 24)
+        self.assertEqual(len(second.json()["problems"]), 1)
+        self.assertEqual(first.json()["pagination"]["pages"], 2)
+
 
 def _json_file(payload):
     return io.BytesIO(json.dumps(payload, ensure_ascii=False).encode("utf-8"))

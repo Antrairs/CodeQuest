@@ -7,7 +7,8 @@ from django.utils import timezone
 from apps.problems.models import Problem
 from apps.submissions.models import Submission
 
-from .models import Activity, ActivityProblem, ActivityCheckinClaim
+from .models import Activity, ActivityCheckinClaim, ActivityProblem
+from .services import activity_user_rows
 
 
 class ActivityApiTests(TestCase):
@@ -52,6 +53,11 @@ class ActivityApiTests(TestCase):
         self.assertTrue(progress["is_completed"])
         self.assertTrue(progress["can_claim"])
 
+        list_response = self.client.get("/api/activities/")
+        listed_progress = list_response.json()["activities"][0]["progress"]
+        self.assertEqual(listed_progress["completed_count"], 1)
+        self.assertEqual(list_response.json()["pagination"]["count"], 1)
+
     def test_claim_requires_completed_activity(self):
         self.client.login(username="student", password="password123")
 
@@ -79,3 +85,6 @@ class ActivityApiTests(TestCase):
         self.assertEqual(second.json()["activity"]["checkin_code"], "ABC123")
         self.assertEqual(second.json()["activity"]["checkin_qr_image_url"], "/media/activity_qrcodes/demo.png")
         self.assertEqual(ActivityCheckinClaim.objects.get().view_count, 2)
+        rows = activity_user_rows(self.activity)
+        self.assertEqual(rows[0]["passed_count"], 1)
+        self.assertEqual(rows[0]["claim"].view_count, 2)

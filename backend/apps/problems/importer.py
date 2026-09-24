@@ -27,6 +27,8 @@ def import_problem_json(file_obj) -> ProblemImportResult:
     if not isinstance(problems, list):
         result.errors.append('JSON 顶层必须是对象，并包含数组字段 "problems"。')
         return result
+    if len(problems) > 200:
+        return ProblemImportResult(errors=["单次最多导入 200 道题。"])
 
     valid_difficulties = {value for value, _ in Problem.Difficulty.choices}
     for index, raw_problem in enumerate(problems, start=1):
@@ -37,6 +39,9 @@ def import_problem_json(file_obj) -> ProblemImportResult:
         title = raw_problem.get("title")
         if not isinstance(title, str) or not title.strip():
             result.errors.append(f"第 {index} 道题缺少 title。")
+            continue
+        if len(title) > 200:
+            result.errors.append(f"第 {index} 道题标题不能超过 200 个字符。")
             continue
 
         if Problem.objects.filter(title=title).exists():
@@ -51,6 +56,9 @@ def import_problem_json(file_obj) -> ProblemImportResult:
         raw_cases = raw_problem.get("test_cases")
         if not isinstance(raw_cases, list) or not raw_cases:
             result.errors.append(f"题目《{title}》缺少 test_cases。")
+            continue
+        if len(raw_cases) > 100:
+            result.errors.append(f"题目《{title}》最多包含 100 个测试用例。")
             continue
 
         case_errors = _validate_test_cases(title, raw_cases)
@@ -89,7 +97,7 @@ def _create_problem(
     raw_cases: list[dict[str, Any]],
 ) -> None:
     category = _get_category(raw_problem.get("category"))
-    problem = Problem.objects.create(
+    problem = Problem(
         title=title,
         description=_text(raw_problem.get("description")),
         difficulty=difficulty,
@@ -98,6 +106,8 @@ def _create_problem(
         explanation=_text(raw_problem.get("explanation")),
         is_published=_bool(raw_problem.get("is_published"), True),
     )
+    problem.full_clean()
+    problem.save()
 
     test_cases = [
         TestCase(
@@ -109,12 +119,16 @@ def _create_problem(
         )
         for index, raw_case in enumerate(raw_cases, start=1)
     ]
+    for test_case in test_cases:
+        test_case.full_clean()
     TestCase.objects.bulk_create(test_cases)
 
 
 def _get_category(value: Any) -> Category | None:
     if not isinstance(value, str) or not value.strip():
         return None
+    if len(value.strip()) > 80:
+        raise ValueError("分类名称不能超过 80 个字符。")
     category, _ = Category.objects.get_or_create(name=value.strip())
     return category
 

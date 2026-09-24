@@ -27,7 +27,7 @@ class SchoolRegistrationTests(TestCase):
 
         complete_response = self.post_json(
             reverse("school-register-complete"),
-            {"username": "learner", "password": "password123"},
+            {"username": "learner", "password": "CodeQuest!2026Study"},
         )
 
         self.assertEqual(complete_response.status_code, 201)
@@ -52,6 +52,18 @@ class SchoolRegistrationTests(TestCase):
             "student_id": user.student_id,
         }})
         self.assertEqual(int(self.client.session["_auth_user_id"]), user.id)
+
+    @patch("apps.users.views.poll_qr_registration")
+    def test_school_registration_rejects_weak_password(self, poll_qr_registration):
+        poll_qr_registration.return_value = SchoolIdentity(student_id="20240001")
+        self.client.get(reverse("school-register-status", args=["session"]))
+
+        response = self.post_json(
+            reverse("school-register-complete"),
+            {"username": "learner", "password": "12345678"},
+        )
+
+        self.assertEqual(response.status_code, 400)
 
     def test_cas_password_encryption_uses_aes(self):
         encrypted = encrypted_password("password123", "1234567890abcdef")

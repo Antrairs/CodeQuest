@@ -48,6 +48,12 @@ class TestCaseInline(admin.TabularInline):
 class ProblemImportForm(forms.Form):
     file = forms.FileField(label="JSON 文件")
 
+    def clean_file(self):
+        file = self.cleaned_data["file"]
+        if file.size > 2 * 1024 * 1024:
+            raise forms.ValidationError("JSON 文件不能超过 2 MB。")
+        return file
+
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
