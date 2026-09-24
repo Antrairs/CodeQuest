@@ -28,6 +28,14 @@ export type Difficulty = {
   label: string
 }
 
+export type Pagination = {
+  page: number
+  pages: number
+  count: number
+  has_previous: boolean
+  has_next: boolean
+}
+
 export type Problem = {
   id: number
   title: string
@@ -49,6 +57,7 @@ export type ProblemListResponse = {
   problems: Problem[]
   categories: Category[]
   difficulties: Difficulty[]
+  pagination: Pagination
 }
 
 export type Submission = {
@@ -93,6 +102,7 @@ export type WrongProblem = {
 
 export type WrongProblemListResponse = {
   wrong_problems: WrongProblem[]
+  pagination: Pagination
 }
 
 export type ActivityProblem = {
@@ -133,4 +143,5 @@ export type Activity = {
 
 export type ActivityListResponse = {
   activities: Activity[]
+  pagination: Pagination
 }

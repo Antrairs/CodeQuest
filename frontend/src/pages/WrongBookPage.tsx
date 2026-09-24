@@ -16,6 +16,7 @@ export function WrongBookPage({ user, navigate }: WrongBookPageProps) {
   const [data, setData] = useState<WrongProblemListResponse | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     if (!user) return
@@ -24,7 +25,7 @@ export function WrongBookPage({ user, navigate }: WrongBookPageProps) {
       setLoading(true)
       setError('')
       try {
-        const response = await api.wrongProblems()
+        const response = await api.wrongProblems(page)
         if (!cancelled) setData(response)
       } catch (caught) {
         if (!cancelled) setError(caught instanceof ApiError ? caught.message : '错题本加载失败')
@@ -36,7 +37,7 @@ export function WrongBookPage({ user, navigate }: WrongBookPageProps) {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, page])
 
   if (!user) {
     return (
@@ -102,6 +103,30 @@ export function WrongBookPage({ user, navigate }: WrongBookPageProps) {
           </article>
         ))}
       </div>
+
+      {data && data.pagination.pages > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            disabled={!data.pagination.has_previous}
+            onClick={() => setPage((value) => value - 1)}
+            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm disabled:opacity-40"
+          >
+            上一页
+          </button>
+          <span className="text-sm text-slate-600">
+            {data.pagination.page} / {data.pagination.pages}
+          </span>
+          <button
+            type="button"
+            disabled={!data.pagination.has_next}
+            onClick={() => setPage((value) => value + 1)}
+            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm disabled:opacity-40"
+          >
+            下一页
+          </button>
+        </div>
+      ) : null}
 
       {!loading && data?.wrong_problems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">

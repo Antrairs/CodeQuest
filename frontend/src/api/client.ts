@@ -14,6 +14,8 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
 }
 
 let csrfRequest: Promise<void> | null = null
+let schoolRegistrationStartRequest: Promise<SchoolRegisterStartResponse> | null = null
+const pendingGets = new Map<string, Promise<unknown>>()
 
 export class ApiError extends Error {
   status: number
@@ -46,7 +48,19 @@ async function ensureCsrfToken() {
   await csrfRequest
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const method = (options.method ?? 'GET').toUpperCase()
+  if (method !== 'GET') return sendRequest<T>(path, options)
+
+  const pending = pendingGets.get(path) as Promise<T> | undefined
+  if (pending) return pending
+
+  const promise = sendRequest<T>(path, options).finally(() => pendingGets.delete(path))
+  pendingGets.set(path, promise)
+  return promise
+}
+
+async function sendRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers)
   const method = (options.method ?? 'GET').toUpperCase()
   let body: BodyInit | undefined
@@ -87,6 +101,7 @@ export type ProblemFilters = {
   category?: string
   difficulty?: string
   status?: string
+  page?: number
 }
 
 export type SubmissionPayload = {
@@ -124,9 +139,15 @@ export const api = {
     })
   },
   startSchoolRegistration() {
-    return request<SchoolRegisterStartResponse>('/auth/register/school/start/', {
-      method: 'POST',
-    })
+    if (!schoolRegistrationStartRequest) {
+      schoolRegistrationStartRequest = request<SchoolRegisterStartResponse>(
+        '/auth/register/school/start/',
+        { method: 'POST' },
+      ).finally(() => {
+        schoolRegistrationStartRequest = null
+      })
+    }
+    return schoolRegistrationStartRequest
   },
   schoolRegistrationStatus(sessionId: string) {
     return request<SchoolRegisterStatusResponse>(`/auth/register/school/${sessionId}/status/`)
@@ -151,6 +172,7 @@ export const api = {
     if (filters.category) params.set('category', filters.category)
     if (filters.difficulty) params.set('difficulty', filters.difficulty)
     if (filters.status) params.set('status', filters.status)
+    if (filters.page && filters.page > 1) params.set('page', String(filters.page))
     const query = params.toString()
     return request<ProblemListResponse>(`/problems/${query ? `?${query}` : ''}`)
   },
@@ -166,11 +188,11 @@ export const api = {
   practiceStats() {
     return request<PracticeStatsResponse>('/submissions/stats/')
   },
-  wrongProblems() {
-    return request<WrongProblemListResponse>('/submissions/wrong-problems/')
+  wrongProblems(page = 1) {
+    return request<WrongProblemListResponse>(`/submissions/wrong-problems/?page=${page}`)
   },
-  activities() {
-    return request<ActivityListResponse>('/activities/')
+  activities(page = 1) {
+    return request<ActivityListResponse>(`/activities/?page=${page}`)
   },
   activity(activityId: number) {
     return request<{ activity: Activity }>(`/activities/${activityId}/`)

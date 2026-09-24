@@ -30,6 +30,7 @@ export function ProblemListPage({ navigate }: ProblemListPageProps) {
   const [category, setCategory] = useState('')
   const [difficulty, setDifficulty] = useState('')
   const [status, setStatus] = useState('')
+  const [page, setPage] = useState(1)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -39,7 +40,7 @@ export function ProblemListPage({ navigate }: ProblemListPageProps) {
       setLoading(true)
       setError('')
       try {
-        const response = await api.problems({ category, difficulty, status })
+        const response = await api.problems({ category, difficulty, status, page })
         if (!cancelled) setData(response)
       } catch (caught) {
         if (!cancelled) setError(caught instanceof ApiError ? caught.message : '题目加载失败')
@@ -51,7 +52,7 @@ export function ProblemListPage({ navigate }: ProblemListPageProps) {
     return () => {
       cancelled = true
     }
-  }, [category, difficulty, status])
+  }, [category, difficulty, status, page])
 
   return (
     <section className="space-y-6">
@@ -67,7 +68,10 @@ export function ProblemListPage({ navigate }: ProblemListPageProps) {
           <span className="text-sm font-medium text-slate-700">分类</span>
           <select
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
+            onChange={(event) => {
+              setCategory(event.target.value)
+              setPage(1)
+            }}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
           >
             <option value="">全部分类</option>
@@ -82,7 +86,10 @@ export function ProblemListPage({ navigate }: ProblemListPageProps) {
           <span className="text-sm font-medium text-slate-700">难度</span>
           <select
             value={difficulty}
-            onChange={(event) => setDifficulty(event.target.value)}
+            onChange={(event) => {
+              setDifficulty(event.target.value)
+              setPage(1)
+            }}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
           >
             <option value="">全部难度</option>
@@ -97,7 +104,10 @@ export function ProblemListPage({ navigate }: ProblemListPageProps) {
           <span className="text-sm font-medium text-slate-700">完成状态</span>
           <select
             value={status}
-            onChange={(event) => setStatus(event.target.value)}
+            onChange={(event) => {
+              setStatus(event.target.value)
+              setPage(1)
+            }}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
           >
             {statusOptions.map((item) => (
@@ -161,6 +171,30 @@ export function ProblemListPage({ navigate }: ProblemListPageProps) {
           )
         })}
       </div>
+
+      {data && data.pagination.pages > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            disabled={!data.pagination.has_previous}
+            onClick={() => setPage((value) => value - 1)}
+            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm disabled:opacity-40"
+          >
+            上一页
+          </button>
+          <span className="text-sm text-slate-600">
+            {data.pagination.page} / {data.pagination.pages}
+          </span>
+          <button
+            type="button"
+            disabled={!data.pagination.has_next}
+            onClick={() => setPage((value) => value + 1)}
+            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm disabled:opacity-40"
+          >
+            下一页
+          </button>
+        </div>
+      ) : null}
 
       {!loading && data?.problems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">

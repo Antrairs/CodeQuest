@@ -19,6 +19,7 @@ export function ActivityListPage({ user, navigate }: ActivityListPageProps) {
   const [data, setData] = useState<ActivityListResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     let cancelled = false
@@ -26,7 +27,7 @@ export function ActivityListPage({ user, navigate }: ActivityListPageProps) {
       setLoading(true)
       setError('')
       try {
-        const response = await api.activities()
+        const response = await api.activities(page)
         if (!cancelled) setData(response)
       } catch (caught) {
         if (!cancelled) setError(caught instanceof ApiError ? caught.message : '活动加载失败')
@@ -38,7 +39,7 @@ export function ActivityListPage({ user, navigate }: ActivityListPageProps) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [page])
 
   return (
     <section className="space-y-6">
@@ -81,6 +82,28 @@ export function ActivityListPage({ user, navigate }: ActivityListPageProps) {
           </Card>
         ))}
       </div>
+
+      {data && data.pagination.pages > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            disabled={!data.pagination.has_previous}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            上一页
+          </Button>
+          <span className="text-sm text-slate-600">
+            {data.pagination.page} / {data.pagination.pages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={!data.pagination.has_next}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            下一页
+          </Button>
+        </div>
+      ) : null}
 
       {!loading && data?.activities.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">

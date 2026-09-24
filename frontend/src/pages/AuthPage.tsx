@@ -33,10 +33,6 @@ export function AuthPage({ mode, onAuthed, navigate }: AuthPageProps) {
 
   useEffect(() => {
     if (isLogin) return
-    setSchoolIdentity(null)
-    setUsername('')
-    setPassword('')
-    setConfirmPassword('')
     void startSchoolRegistration()
   }, [isLogin])
 
@@ -119,6 +115,10 @@ export function AuthPage({ mode, onAuthed, navigate }: AuthPageProps) {
   }
 
   async function startSchoolRegistration() {
+    setSchoolIdentity(null)
+    setUsername('')
+    setPassword('')
+    setConfirmPassword('')
     setMessage('')
     setQrLoading(true)
     setQrSessionId('')
@@ -332,6 +332,8 @@ function TextInput(props: {
           className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
           placeholder={props.placeholder}
           autoComplete={props.autoComplete}
+          minLength={3}
+          maxLength={32}
           required
         />
       </span>
@@ -359,6 +361,8 @@ function PasswordInput(props: {
           type={props.showPassword ? 'text' : 'password'}
           placeholder="请输入密码"
           autoComplete={props.autoComplete}
+          minLength={8}
+          maxLength={128}
           required
         />
         <button

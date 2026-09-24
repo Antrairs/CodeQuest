@@ -24,6 +24,9 @@ import { Card, CardHeader } from '../components/ui/card'
 import { PythonRunner } from '../lib/pythonRunner'
 import type { PythonRunnerSnapshot, PythonRunResult } from '../lib/pythonRunner'
 
+const MAX_CODE_LENGTH = 100_000
+const MAX_INPUT_LENGTH = 65_536
+
 type PracticePageProps = {
   problemId: number
   user: User | null
@@ -719,7 +722,7 @@ export function PracticePage({ problemId, user, navigate }: PracticePageProps) {
                     syntaxHighlighting: false,
                   }}
                   extensions={editorExtensions}
-                  onChange={(value) => setCode(value)}
+                  onChange={(value) => setCode(value.slice(0, MAX_CODE_LENGTH))}
                   className="code-editor h-full"
                 />
               </div>
@@ -735,6 +738,7 @@ export function PracticePage({ problemId, user, navigate }: PracticePageProps) {
             <textarea
               value={customInput}
               onChange={(event) => setCustomInput(event.target.value)}
+              maxLength={MAX_INPUT_LENGTH}
               placeholder="输入 stdin，点击运行后会传给你的代码"
               className="custom-scrollbar min-h-40 flex-1 resize-none rounded-b-2xl border-0 bg-slate-50 p-4 font-mono text-sm leading-7 text-slate-950 outline-none focus:bg-white"
             />
