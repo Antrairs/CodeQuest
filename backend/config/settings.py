@@ -88,12 +88,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ["POSTGRES_DB"],
-        "USER": os.environ["POSTGRES_USER"],
-        "PASSWORD": os.environ["POSTGRES_PASSWORD"],
-        "HOST": os.environ["POSTGRES_HOST"],
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -136,6 +132,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.environ.get("STATIC_ROOT", DATA_DIR / "static")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.environ.get("MEDIA_ROOT", DATA_DIR / "media")
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()

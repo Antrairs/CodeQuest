@@ -5,7 +5,10 @@
   "license": "ISC",
   "author": "",
   "scripts": {
-    "dev:back": "cd backend && uv run --env-file ../.env python manage.py runserver",
-    "dev:front": "cd frontend && bun run dev"
+    "dev": "bun --parallel dev:back dev:front",
+    "dev:back": "cd backend && uv run --env-file ../.env python manage.py runserver --insecure",
+    "dev:front": "cd frontend && bun run dev",
+    "migrate": "cd backend && uv run --env-file ../.env python manage.py migrate",
+    "csu": "cd backend && uv run --env-file ../.env python manage.py createsuperuser"
   }
 }
