@@ -77,6 +77,26 @@ bun run dev
 
 前端开发服务器已把 `/api` 代理到 `http://localhost:8000`。首次运行 Python 代码时，浏览器会从 Pyodide CDN 加载运行时。
 
+## 演示数据备份与恢复
+
+先运行 `backend/oracle/seed_demo.sql` 初始化演示数据，并确认前端展示符合预期。
+停止后端后，在项目根目录执行：
+
+```bash
+bun run backup   # 保存当前 CODEQUEST schema 为基准，不覆盖已有备份
+bun run reset    # 删除并重建 CODEQUEST，恢复基准备份
+bun run dev
+```
+
+脚本使用 `ora-free` 容器中的 `FREEPDB1`，本地备份保存在
+`backend/data/backups/codequest_baseline.dmp`。数据库密码读取本地 `.env`；
+Data Pump 使用容器内管理员认证，避免密码中的 `@` 被解析成连接地址。
+恢复前关闭后端和 CODEQUEST 的 SQL 客户端，脚本先校验备份可读取，再重建用户。
+恢复会清除基准备份之后的全部数据库修改；上传图片不在备份中。
+恢复后重新登录；基准中的活动起止时间也原样恢复。
+若导入失败，基准备份仍保留，查看容器备份目录中的 `codequest_restore.log`；
+修复错误后重新执行 `bun run reset`，不要启动后端继续写入不完整的数据。
+
 ## 录题流程
 
 1. 进入 Django Admin。

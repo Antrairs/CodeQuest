@@ -9,6 +9,8 @@
     "dev:back": "cd backend && uv run --env-file ../.env python manage.py runserver --insecure",
     "dev:front": "cd frontend && bun run dev",
     "migrate": "cd backend && uv run --env-file ../.env python manage.py migrate",
+    "backup": "bash scripts/backup.sh backup",
+    "reset": "bash scripts/backup.sh restore",
     "csu": "cd backend && uv run --env-file ../.env python manage.py createsuperuser"
   }
 }
