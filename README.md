@@ -32,13 +32,31 @@ frontend/
 
 ## 本地启动
 
+后端使用 Oracle，所有业务继续通过 Django ORM 访问。先启动 Oracle 容器，确保
+`CODEQUEST_LAB` 用户可以连接 `FREEPDB1`，并具备 Django 迁移所需的建表权限。
+连接使用 python-oracledb Thin 模式，无需安装 Oracle Client。
+
+在项目根目录的本地 `.env` 中配置以下参数（已有文件直接补充，不覆盖）：
+
+```dotenv
+ORACLE_USER=CODEQUEST_LAB
+ORACLE_PASSWORD=填写本地数据库密码
+ORACLE_HOST=127.0.0.1
+ORACLE_PORT=1521
+ORACLE_SERVICE=FREEPDB1
+DJANGO_DEBUG=True
+```
+
+密码不提交到仓库。Oracle 与原 SQLite 文件的数据独立，不导入旧数据。
+本地 HTTP 开发使用 `DJANGO_DEBUG=True`；部署时关闭并使用 HTTPS。
+
 后端：
 
 ```bash
 cd backend
-uv run python manage.py migrate
-uv run python manage.py createsuperuser
-uv run python manage.py runserver
+uv run --env-file ../.env python manage.py migrate
+uv run --env-file ../.env python manage.py createsuperuser
+uv run --env-file ../.env python manage.py runserver
 ```
 
 前端：
@@ -48,6 +66,9 @@ cd frontend
 bun install
 bun run dev
 ```
+
+也可以在项目根目录运行 `bun run migrate` 初始化 Oracle 表，运行 `bun run csu`
+创建管理员，再运行 `bun run dev` 同时启动前后端。迁移复用现有 Django migrations。
 
 访问：
 
@@ -72,8 +93,8 @@ bun run dev
 
 ```bash
 cd backend
-uv run python manage.py check
-uv run python manage.py test
+uv run --env-file ../.env python manage.py check
+uv run --env-file ../.env python manage.py test
 ```
 
 前端：

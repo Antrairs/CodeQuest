@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.submissions.models import Submission
 
-from .models import Activity, ActivityCheckinClaim
+from .models import Activity, ActivityCheckinClaim, ActivityProblem
 from .services import activity_progress, can_claim, claim_checkin
 
 
@@ -74,8 +74,15 @@ def serialize_activity(activity: Activity, user, include_problems=False, include
 
 @require_GET
 def activity_list(request):
+    problem_counts = (
+        ActivityProblem.objects.filter(activity_id=OuterRef("pk"))
+        .order_by()
+        .values("activity_id")
+        .annotate(total=Count("pk"))
+        .values("total")
+    )
     activities = Activity.objects.filter(status=Activity.Status.PUBLISHED).annotate(
-        problem_count=Count("activity_problems", distinct=True)
+        problem_count=Coalesce(Subquery(problem_counts, output_field=IntegerField()), 0)
     ).order_by("-start_at", "-created_at")
     if request.user.is_authenticated:
         passed_counts = (

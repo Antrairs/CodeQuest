@@ -90,8 +90,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": DATA_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.oracle",
+        "NAME": (
+            f"{os.environ.get('ORACLE_HOST', '127.0.0.1')}:"
+            f"{os.environ.get('ORACLE_PORT', '1521')}/"
+            f"{os.environ.get('ORACLE_SERVICE', 'FREEPDB1')}"
+        ),
+        "USER": os.environ.get("ORACLE_USER", "CODEQUEST_LAB"),
+        "PASSWORD": os.environ["ORACLE_PASSWORD"],
+        "HOST": "",
+        "PORT": "",
     }
 }
 
