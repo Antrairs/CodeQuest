@@ -109,22 +109,21 @@ Data Pump 使用容器内管理员认证，避免密码中的 `@` 被解析成�
 
 ## 验证命令
 
-后端：
+### 演示 SQL 日志
 
-```bash
-cd backend
-uv run --env-file ../.env python manage.py check
-uv run --env-file ../.env python manage.py test
-```
+本地 `.env` 设置 `DJANGO_DEBUG=True` 后，运行 `bun run dev`，在后端终端查看
+`[SQL]` 日志：
 
-前端：
+| 前端操作 | 打印的 SQL |
+| --- | --- |
+| 登录后进入题目答题页，点击“提交代码” | 新增提交记录的 `INSERT` |
+| 提交失败，且该题首次进入错题本 | 新增错题记录的 `INSERT`，以及增加错误次数的 `UPDATE` |
+| 再次提交失败 | 更新错误次数和未解决状态的 `UPDATE` |
+| 提交通过 | 将已有错题标记为已解决的 `UPDATE`；即使没有错题记录，也会执行这条更新语句 |
+| 登录后点击导航中的“我的练习”，或刷新 `/practice-log` 页面 | 统计练习题数、通过题数的聚合 `SELECT`，每次请求打印一次 |
 
-```bash
-cd frontend
-bun run lint
-bun run build
-```
+浏览或筛选题库、点击“运行代码”、查看错题本和活动，不触发演示 SQL 打印。
+“运行代码”仅在浏览器中执行 Python，不保存提交记录。
 
-## MVP 验收路径
-
-管理员在 Django Admin 创建并发布题目后，用户可以注册登录，进入题库，打开题目练习页，输入 Python 代码并点击“运行代码”查看 stdout 或错误。点击“提交代码”后，前端使用该题测试用例判题，展示通过数量，并把正式提交保存到后端。未通过题会进入错题本；再次提交通过后，该错题会标记为已掌握。
+日志是 ORM 实际执行的 SQL，保留参数占位符，不打印参数值；
+不输出分页计数、Session 等辅助查询。关闭 DEBUG 后不打印。

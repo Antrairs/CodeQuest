@@ -1,6 +1,11 @@
 import json
 from functools import wraps
 
+import sqlparse
+
+from django.conf import settings
+from django.db import connection
+
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Count, F, Q
@@ -103,21 +108,28 @@ def create_submission(request):
         submission.full_clean()
     except ValidationError as error:
         return JsonResponse({"error": "；".join(error.messages)}, status=400)
-    submission.save()
 
-    if submission.is_passed:
-        WrongProblem.objects.filter(user=request.user, problem=problem).update(is_resolved=True)
-    else:
-        wrong, _ = WrongProblem.objects.get_or_create(
-            user=request.user,
-            problem=problem,
-            defaults={"wrong_count": 0},
-        )
-        WrongProblem.objects.filter(pk=wrong.pk).update(
-            wrong_count=F("wrong_count") + 1,
-            last_wrong_at=timezone.now(),
-            is_resolved=False,
-        )
+    def print_sql(execute, sql, params, many, context):
+        if settings.DEBUG and sql.lstrip().upper().startswith(("INSERT", "UPDATE")):
+            print("\n[SQL] 提交代码\n" + sqlparse.format(sql, reindent=True, keyword_case="upper") + "\n", flush=True)
+        return execute(sql, params, many, context)
+
+    with connection.execute_wrapper(print_sql):
+        submission.save()
+
+        if submission.is_passed:
+            WrongProblem.objects.filter(user=request.user, problem=problem).update(is_resolved=True)
+        else:
+            wrong, _ = WrongProblem.objects.get_or_create(
+                user=request.user,
+                problem=problem,
+                defaults={"wrong_count": 0},
+            )
+            WrongProblem.objects.filter(pk=wrong.pk).update(
+                wrong_count=F("wrong_count") + 1,
+                last_wrong_at=timezone.now(),
+                is_resolved=False,
+            )
 
     return JsonResponse({"submission": serialize_submission(submission)}, status=201)
 
@@ -126,10 +138,17 @@ def create_submission(request):
 @require_auth
 def practice_stats(request):
     submissions = Submission.objects.filter(user=request.user).select_related("problem", "problem__category")
-    counts = submissions.aggregate(
-        practiced_count=Count("problem_id", distinct=True),
-        passed_problem_count=Count("problem_id", filter=Q(is_passed=True), distinct=True),
-    )
+
+    def print_sql(execute, sql, params, many, context):
+        if settings.DEBUG:
+            print("\n[SQL] 我的练习统计\n" + sqlparse.format(sql, reindent=True, keyword_case="upper") + "\n", flush=True)
+        return execute(sql, params, many, context)
+
+    with connection.execute_wrapper(print_sql):
+        counts = submissions.aggregate(
+            practiced_count=Count("problem_id", distinct=True),
+            passed_problem_count=Count("problem_id", filter=Q(is_passed=True), distinct=True),
+        )
     practiced_count = counts["practiced_count"]
     passed_problem_count = counts["passed_problem_count"]
     unresolved_wrong_count = WrongProblem.objects.filter(
